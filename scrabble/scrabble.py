@@ -21,6 +21,12 @@ current_player = 0
 trans = "₀₁₂₃₄₅₆₇₈₉"
 is_first_word = True
 
+# a logging function, same signature as print
+def log(value, *args):
+  pass
+# comment line below to hide logs, uncomment to show them
+log = print
+
 def load_tiles():
   f = open('scrabble_tiles.txt') # we don't have the '_: 0x2' record at the top, for jokers
   content = f.read()
@@ -128,8 +134,8 @@ def place_word(coord, word, player_tiles):
   positions = compute_word_coords(coord, word.upper())
   score = 0
   intersects_any_word = False
-  print('aaaaaa')
   for [coordinate, in_hand, on_table] in positions:
+    log('check for intersected word:', coordinate, in_hand, on_table)
     if on_table == '.': 
       # is_player_tiles_missing_tile(player_tiles, letter)
       if player_tiles.get(in_hand, 0) == 0: 
@@ -137,24 +143,24 @@ def place_word(coord, word, player_tiles):
         return -2
       else:
         intersected_word = get_intersected_word(on_table, in_hand, coordinate)      
-        print('Found intersected_word', intersected_word)
+        log('Found intersected_word', intersected_word)
         if intersected_word != None:
           if intersected_word not in available_words:
             return -3
           intersects_any_word = True
-          print('Adding', word_value(intersected_word), 'for', intersected_word)
+          log('Adding', word_value(intersected_word), 'for', intersected_word)
           # points made by changing existing words on table
           score += word_value(intersected_word)
     else:
       if on_table != in_hand:
         return -4
+      intersects_any_word = True
     player_tiles_copy[in_hand] -= 1
-  print('bbbbbbbbb, is_first_word =', is_first_word)
   # for first word, check that it touches mid position
   if is_first_word:
     found_mid_position = False
     for [coordinate, in_hand, on_table] in positions:
-      print(coordinate, in_hand, on_table)
+      log(coordinate, in_hand, on_table)
       if coordinate == 'H8' or coordinate[0] == '8H':
         found_mid_position = True
     if found_mid_position == False:
@@ -162,12 +168,10 @@ def place_word(coord, word, player_tiles):
       return -20
   else:
     # otherwise, it must intersect at least one other word on the table
-    print('ccccc')
     if not intersects_any_word :
       print('Your word does not intersect any other word on the table')
       return -30
   # actually write word, skipping letters already on table
-  print('dddddd')
   for [coordinate, in_hand, on_table] in positions:
     if on_table == '.':
       set_letter(coordinate, in_hand)
@@ -180,7 +184,7 @@ def place_word(coord, word, player_tiles):
 def get_intersected_word(letter_on_table, letter_in_hand, coord):
   """takes letter_on_table, its desired position on board and orientation of word
   return any word it would intersect, perpendicular on orientation, or None"""
-  # print(letter_on_table, letter_in_hand, coord)
+  log('get_intersected_word:', letter_on_table, letter_in_hand, coord)
   [row, col, ort] = decode_coord(coord)
   if letter_on_table != '.':
     return None
@@ -194,7 +198,7 @@ def get_intersected_word(letter_on_table, letter_in_hand, coord):
     while row2 < 15 and table[row2][col] != '.':
       intersected_word.append(table[row2][col])
       row2 += 1
-    # print('horiz:', row, row1, row2, intersected_word)
+    # log('horiz:', row, row1, row2, intersected_word)
   else:
     col1 = col - 1
     while col1 > 0 and table[row][col1] != '.':
@@ -204,7 +208,7 @@ def get_intersected_word(letter_on_table, letter_in_hand, coord):
     while col2 < 15 and table[row][col2] != '.':
       intersected_word.append(table[row][col2])
       col2 += 1
-    # print('vert:', col, col1, col2, intersected_word)
+    # log('vert:', col, col1, col2, intersected_word)
   intersected_word = ''.join(intersected_word)
   if intersected_word == letter_in_hand:
     return None
@@ -285,7 +289,7 @@ def game_continues():
       return False
   return True
 
-commands = 'HELP, TILES, PASS, TABLE, CHECK <word>, XCHG/EXCHANGE <t i l e s>, MOVE <coords> <word>'
+commands = 'HELP, TILES, PASS, TABLE, CHECK <word>, XCHG/EXCHANGE <t i les>, MOVE <coords> <word>'
 
 def cmd_help(choice):
   if choice == 'HELP' or choice == '?' or choice == 'H':
@@ -323,38 +327,46 @@ def cmd_exchange(choice):
   global player_tiles, bag, current_player
   tiles = None
   if choice.find('EXCHANGE ') == 0:
-    tiles = choice[9:].split()
+    tiles = choice[9:]
   if choice.find('XCHG ') == 0:
-    tiles = choice[5:].split()
-  if tiles != None:
-    # attempt to take required tiles from player's hand
-    player_tiles_copy = player_tiles[current_player].copy()
-    temp_bag = []
-    for tile in tiles:
-      if player_tiles_copy[tile] > 0:
-        player_tiles_copy[tile] -= 1
-        temp_bag.append(tile)
-      else:
-        return (True, -600) # command correct, but player tried to replace tile they didn't have
-    # that was just a copy, so actually take them out
-    old_tiles = get_player_tiles(player_tiles[current_player])
-    for tile in tiles:
-      player_tiles[current_player][tile] -= 1
-    # and put them back in the bag
-    for tile in temp_bag:
-      bag[tile] += 1
-    # now refill player's hand
-    refill_rack(player_tiles[current_player])
-    print(f'You had {old_tiles}, you now have {get_player_tiles(player_tiles[current_player])}')    
-    return (True, 0) # pass turn
-  return (False, -600)
+    tiles = choice[5:]
+  if tiles == None:
+    return (False, -600) # not handling
+  if len(tiles) == 0:
+    return (True, 0) # pass turn, command correct but no tile specified
+  tiles = tiles.replace(' ', '')
+  ts = []
+  for c in tiles:
+    ts.append(c)
+  tiles = ts
+  log('will replace', tiles)
+  # attempt to take required tiles from player's hand
+  player_tiles_copy = player_tiles[current_player].copy()
+  temp_bag = []
+  for tile in tiles:
+    if player_tiles_copy[tile] > 0:
+      player_tiles_copy[tile] -= 1
+      temp_bag.append(tile)
+    else:
+      return (True, -600) # command correct, but player tried to replace tile they didn't have
+  # that was just a copy, so actually take them out
+  old_tiles = get_player_tiles(player_tiles[current_player])
+  for tile in tiles:
+    player_tiles[current_player][tile] -= 1
+  # and put them back in the bag
+  for tile in temp_bag:
+    bag[tile] += 1
+  # now refill player's hand
+  refill_rack(player_tiles[current_player])
+  print(f'Exchanged {tiles}, you now have {get_player_tiles(player_tiles[current_player])}, skipping turn')
+  return (True, 0) # pass turn
 
 def cmd_move(choice):
   if choice.find('MOVE ') == 0:
     choice = choice[5:]          
     score = word_is_ok(choice, player_tiles[current_player])
-    print('choice:', choice)
-    print('score:', score)
+    log('choice:', choice)
+    log('score:', score)
     return (True, score)
   return (False, None)
 
@@ -365,7 +377,7 @@ def run_turn():
   choice = input(message).upper()
   for cmd in cmds:
     (handled, score) = cmd(choice)
-    #print(cmd.__name__[4:], handled, score)
+    #log(cmd.__name__[4:], handled, score)
     if handled:
       return score
   return -1000
@@ -374,9 +386,7 @@ def do_player_turn():
   "does turn for player, returning attained score; player can enter multiple commands"
   score = run_turn()
   while score < 0:
-    # print('score is', str(score), 'continuing')
     score = run_turn()
-  print('moving on')
   return score
 
 def word_is_ok(choice, tiles):
@@ -385,7 +395,7 @@ def word_is_ok(choice, tiles):
   coord = splits[0]
   word = splits[1]
   if word not in available_words:
-    return -100
+    return -100-100
   score = place_word(coord, word, tiles)
   return score
   
@@ -429,7 +439,7 @@ def play_game():
 play_game()
 
 # for i in range(player_count):
-#   print(get_available_tiles(player_tiles[i]), player_points[i], player_names[i])
+#   log(get_available_tiles(player_tiles[i]), player_points[i], player_names[i])
 
 # GO
 # initialise()
