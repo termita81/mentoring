@@ -20,12 +20,27 @@ player_count = 0
 current_player = 0
 trans = "₀₁₂₃₄₅₆₇₈₉"
 is_first_word = True
+colors = {
+  '2w': '95',
+  '3w': '91',
+  '2l': '96',
+  '3l': '94'
+}
+multipliers = {}
+for dl in [ 'D1', 'L1', 'G3', 'I3', 'A4', 'H4', 'O4', 'C7', 'G7', 'I7', 'M7', 'D8', 'L8', 'C9', 'G9', 'I9', 'M9', 'A12', 'H12', 'O12', 'G13', 'I13', 'D15', 'L15' ]:
+  multipliers[dl] = '2l'
+for dl in [ 'B2', 'N2', 'C3', 'M3', 'D4', 'L4', 'E5', 'K5', 'H8', 'E11', 'K11', 'D12', 'L12', 'C13', 'M13', 'B14', 'N14' ]:
+  multipliers[dl] = '2w'  
+for dl in [ 'F2', 'J2', 'B6', 'F6', 'J6', 'N6', 'B10', 'F10', 'J10', 'N10', 'F14', 'J14' ]:
+  multipliers[dl] = '3l'  
+for dl in [ 'A1', 'H1', 'O1', 'A8', 'O8', 'A15', 'H15', 'O15' ]:
+  multipliers[dl] = '3w'
 
 # a logging function, same signature as print
 def log(value, *args):
   pass
 # comment line below to hide logs, uncomment to show them
-log = print
+# log = print
 
 def load_tiles():
   f = open('scrabble_tiles.txt') # we don't have the '_: 0x2' record at the top, for jokers
@@ -40,13 +55,6 @@ def load_tiles():
     for tiles in player_tiles:
       tiles[tile] = 0
     bag[tile] = count
-
-def init_table():
-  for i in range(15):
-    small_list = []
-    for j in range(15):
-      small_list.append('.') #☐')
-    table.append(small_list)
     
 def load_dictionary():
   global available_words
@@ -56,22 +64,48 @@ def load_dictionary():
   f.close()
   available_words = content.upper().split('\n')
 
+def init_table():
+  for i in range(15):
+    small_list = []
+    for j in range(15):
+      small_list.append('.') #☐')
+    table.append(small_list)
+
+def colorize(color, text):
+  global colors
+  clr = colors.get(color)
+  if clr == None:
+    return text
+  # background
+  # return f'\033[{clr};7m{text}\033[00m'
+  # foreground
+  return f'\033[{clr}m{text}\033[00m'
+
+def get_multiplier(coord):
+  "takes coord, returns '2l', '3w' etc"
+  global multipliers
+  res = multipliers.get(coord)
+  if res == None:
+    return '-'
+  return res
+
 def show_table():
   "responsible for displaying the game board; to be called after every player's turn"
   global player_names, player_tiles, player_count, player_points, current_player
   print('    ', end='')
-  print(' 1', ' 2', ' 3', ' 4', ' 5', ' 6', ' 7', ' 8', ' 9', '10', '11', '12', '13', '14', '15', sep = ' |  ', end = '\n\n') # number coords
+  print(' 1', ' 2', ' 3', ' 4', ' 5', ' 6', ' 7', ' 8', ' 9', '10', '11', '12', '13', '14', '15', sep = '    ', end = '\n\n') # number coords
   for i in range(15):
-    line = chr(i + 65) + '    '
+    line = chr(i + 65) + '   '
     for j in range(15):
+      coord = chr(i + 65) + str(j + 1)
       tile_to_show = table[i][j]
-      line += tile_to_show
       if tile_to_show != '.':
-        line += trans[(tile_values[tile_to_show])]
+        tile_to_show += trans[(tile_values[tile_to_show])]
       else:
-        line += ' ' 
+        tile_to_show += ' ' 
+      line += colorize(get_multiplier(coord), ' ' + tile_to_show)
       #old: 
-      line += '    '
+      line += '   '
       # new: line += ' |  '
     # old: 
     print(line, end = '\n\n')
@@ -373,7 +407,7 @@ def cmd_move(choice):
 cmds = [ cmd_help, cmd_tiles, cmd_pass, cmd_check, cmd_exchange, cmd_move ]
 
 def run_turn():  
-  message = player_names[current_player] + ' command: ' + commands + '\n'
+  message = player_names[current_player] + ' command: ' + commands + '\n\t@ '
   choice = input(message).upper()
   for cmd in cmds:
     (handled, score) = cmd(choice)
