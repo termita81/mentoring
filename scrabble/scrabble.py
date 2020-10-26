@@ -1,11 +1,6 @@
 """
 http://www.cumsejoaca.ro/reguli-de-joc-regulament/scrabble-regulament-de-joc/
 https://scrabble.hasbro.com/en-us/rules
-# https://repl.it/@Bookie0/ZooooomCar#main.py pentru culori
-TEMA:
-  - primul cuvant introdus in joc sa includa punctul din mijloc (H8)
-  - cuvintele ulterioare sa se intersecteze/lege cu cuvinte existente pe tabla (hint: vezi in place_word) 
-    - de exemplu, pe tabla poate sa existe "BALAUR", jucatorul adauga "I" la sfarsit, rezulta "BALAURI", care e OK
 """
 import random
 
@@ -302,13 +297,12 @@ def refill_rack(player_tiles): # e.g. player_tiles = {'_': 0, 'A': 2, 'B': 1, ..
           break
         else:
           counter += 1
-  # return target_count
 
 def get_available_tiles(tiles):
   "returns tiles that are actually in the collection"
-  available = {} # dictionar care va contine perechi
+  available = {}
   for letter in tiles:
-    if tiles[letter] > 0: # daca in saculet mai exista litera letter
+    if tiles[letter] > 0:
       available[letter] = tiles[letter]
   return available
 
@@ -358,7 +352,7 @@ def cmd_check(choice):
   return (False, -400)
 
 def cmd_exchange(choice):
-  "allows you to exchange tiles from your hand with some from the bag. you ask for 1 to all of your tiles to be exchanged, it checks you actually have them, if no - bad luck, nothing happens, if yes it then takes them from you, puts them in the bag, then refills your rack as usual"
+  "Allows you to exchange tiles from your hand with some from the bag. You ask for 1 to all of your tiles to be exchanged, it checks you actually have them, if no - bad luck, nothing happens, if yes it then takes them from you, puts them in the bag, then refills your rack as usual"
   global player_tiles, bag, current_player
   tiles = None
   if choice.find('EXCHANGE ') == 0:
@@ -412,7 +406,6 @@ def run_turn():
   choice = input(message).upper()
   for cmd in cmds:
     (handled, score) = cmd(choice)
-    #log(cmd.__name__[4:], handled, score)
     if handled:
       return score
   return -1000
@@ -444,10 +437,12 @@ def show_winner():
 
 def initialise():
   global player_count
-  player_count = 2 # int(input('How many players?\n'))
+  player_count = int(input('How many players?\n'))
+  while player_count > 4 and player_count < 1:
+    player_count = int(input('How many players?\n'))
   for i in range(player_count):
-    player_tiles.append({}) # fiecare jucator are un dictionar gol de piese
-    player_points.append(0) # fiecare jucator are 0 puncte la inceput
+    player_tiles.append({})
+    player_points.append(0)
     player_names.append('Player_' + str(i + 1)) # Player_1, Player_2    
   init_table()
   load_tiles()
@@ -472,100 +467,3 @@ def play_game():
   show_winner()
 
 play_game()
-
-# for i in range(player_count):
-#   log(get_available_tiles(player_tiles[i]), player_points[i], player_names[i])
-
-# GO
-# initialise()
-# place_word('7d', 'WONDER', {'D': 1, 'R': 2, 'W': 1, 'E': 1, 'O': 1, 'N': 1})
-# place_word('d7', 'WATER', {'R': 2, 'W': 1, 'E': 1, 'T': 1, 'A': 1})
-# place_word('h4', 'HOPE', {'H': 2, 'P': 1, 'E': 1, 'O': 1})
-# place_word('5g', 'POLICE', {'P': 1, 'O': 1, 'E': 1, 'L': 1, 'I': 1, 'C': 1})
-# show_table()
-
-# SUB = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
-
-
-
-
-  
-"""
-
-
-Pentru fiecare litera din 'PELIN': 
-e liber pe tabla?
-  da - am piesa in mana?      
-    da - se intersecteaza cu vreun cuvant existent?
-      da - se potriveste cu cuvantul respectiv? (aici putem sa retinem cuvantul, ca sa-l socotim la puncte)
-        da - returneaza True
-        nu - returneaza False
-      nu - returneaza True
-    nu - returneaza False
-  nu - e aceeasi piesa?     
-    da - returneaza True    
-    nu - returneaza False
-
-1.
-if is_position_free_on_table(position):
-  if has_player_tile(tile):
-    if is_intersected_with_word_on_table(?):
-      if ....:
-        return True
-      else:
-        return False
-    else:
-      return True
-  else:
-    return False
-else:
-  if is_same_tile(tile?):
-    return True
-  else:
-    return False
-
-2.
-if is_position_free_on_table(position):
-  if has_player_tile(tile):
-    intersected_word = get_intersected_word(tile, coordinates)
-    if intersected_word != None:                            # if is_intersected_with_word_on_table(...)
-      if is_word_in_dictionary(intersected_word):                # if is_intersected_word_in_dictionary
-        return True
-      else:
-        return False
-    else:
-      return True
-  else:
-    return False
-else:
-  if is_same_tile(tile?):
-    return True
-  else:
-    return False
-
-
-
-
-
-
-
-
-
-
-Pentru ca in caz de eroare (piesa lipsa, patratica ocupata cu altceva etc) iesim din functie cu False, ne intereseaza mai ales partile alea; in caz ca algoritmul nu are nevoie sa se opreasca, merge mai departe
-e liber pe tabla?
-  da - am piesa in mana?      
-    da - se intersecteaza cu vreun cuvant existent?
-      da - se potriveste cu cuvantul respectiv? (aici putem sa retinem cuvantul, ca sa-l socotim la puncte)
-        nu - returneaza False
-    nu - returneaza False
-  nu - e aceeasi piesa?   
-    nu - returneaza False
-
-
-
-H5 rau
-L4 pelin: L4 P; L5 E; L6 L; L7 I; L8 N
-4L pelin: 4L P; 4M E; 4N L; 4O I; 
-
-"""
