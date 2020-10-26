@@ -20,6 +20,7 @@ player_count = 0
 current_player = 0
 trans = "₀₁₂₃₄₅₆₇₈₉"
 is_first_word = True
+# https://www.skillsugar.com/how-to-print-coloured-text-in-python
 colors = {
   '2w': '95',
   '3w': '91',
